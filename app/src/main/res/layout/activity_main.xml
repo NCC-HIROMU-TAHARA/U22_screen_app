@@ -20,6 +20,18 @@
 
     </com.google.android.material.appbar.AppBarLayout>
 
+    <!-- 【追加】バックグラウンド記録を制御するトグルボタン -->
+    <ToggleButton
+        android:id="@+id/trackingToggleButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="16dp"
+        android:textOff="記録OFF"
+        android:textOn="記録ON"
+        app:layout_constraintBottom_toBottomOf="@id/appBarLayout"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="@id/appBarLayout" />
+
     <TextView
         android:id="@+id/totalUsage"
         android:layout_width="wrap_content"
@@ -136,6 +148,7 @@
             android:layout_height="wrap_content"
             android:text="手動で更新" />
     </LinearLayout>
+
 
     <Button
         android:id="@+id/permissionButton"
