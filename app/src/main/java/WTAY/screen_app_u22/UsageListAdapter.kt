@@ -7,6 +7,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
+import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import java.util.concurrent.TimeUnit
@@ -14,11 +15,15 @@ import java.util.concurrent.TimeUnit
 class UsageListAdapter(private val context: Context, private val usageStatsList: List<AppUsageDisplayItem>) :
     RecyclerView.Adapter<UsageListAdapter.ViewHolder>() {
 
+    // リスト内の最大利用時間を保持
+    private val maxUsageTime = usageStatsList.maxOfOrNull { it.totalTimeInForeground } ?: 1L
+
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val appIconImageView: ImageView = view.findViewById(R.id.appIconImageView)
         val appNameTextView: TextView = view.findViewById(R.id.textViewAppName)
         val packageNameTextView: TextView = view.findViewById(R.id.textViewPackageName)
         val usageTimeTextView: TextView = view.findViewById(R.id.textViewUsageTime)
+        val usageProgressBar: ProgressBar = view.findViewById(R.id.usageProgressBar) // ProgressBar
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -39,6 +44,10 @@ class UsageListAdapter(private val context: Context, private val usageStatsList:
         } catch (e: PackageManager.NameNotFoundException) {
             holder.appIconImageView.setImageResource(R.mipmap.ic_launcher) // Default icon
         }
+
+        // プログレスバーの値を設定
+        val progress = (item.totalTimeInForeground * 100 / maxUsageTime).toInt()
+        holder.usageProgressBar.progress = progress
     }
 
     override fun getItemCount() = usageStatsList.size
