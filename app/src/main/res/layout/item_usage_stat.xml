@@ -10,7 +10,7 @@
     android:layout_marginEnd="16dp"
     android:layout_marginTop="8dp"
     android:layout_marginBottom="8dp"
-    app:cardBackgroundColor="?attr/colorSurfaceContainerLowest"> <!-- or colorSurfaceVariant -->
+    app:cardBackgroundColor="?attr/colorSurfaceContainerLowest">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -25,7 +25,8 @@
             android:layout_height="48dp"
             android:layout_marginEnd="16dp"
             android:scaleType="fitCenter"
-            tools:src="@mipmap/ic_launcher_round" />
+            tools:src="@mipmap/ic_launcher_round"
+            android:contentDescription="@null"/>
 
         <LinearLayout
             android:layout_width="0dp"
@@ -52,6 +53,17 @@
                 android:maxLines="1"
                 android:ellipsize="end"
                 tools:text="com.example.verylong.packagename"/>
+
+            <ProgressBar
+                android:id="@+id/usageProgressBar"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="match_parent"
+                android:layout_height="6dp"
+                android:layout_marginTop="4dp"
+                android:progressTint="?attr/colorPrimary"
+                app:trackCornerRadius="3dp"
+                tools:progress="60" />
+
         </LinearLayout>
 
         <TextView
