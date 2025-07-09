@@ -17,6 +17,7 @@ import com.google.android.material.card.MaterialCardView
 import kotlinx.coroutines.launch
 import java.util.concurrent.TimeUnit
 import WTAY.screen_app_u22.UsageStatsHelper
+import android.os.Build
 
 class MainActivity : AppCompatActivity() {
 
@@ -27,7 +28,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var totalUsageTextView: TextView
     private lateinit var usageButton: Button
     private lateinit var permissionButton: Button
-    private lateinit var alertSettingsButton: Button
 
     // ハイライト表示用のUIプロパティ
     private lateinit var highlightCard: MaterialCardView
@@ -53,7 +53,6 @@ class MainActivity : AppCompatActivity() {
         totalUsageTextView = findViewById(R.id.totalUsage)
         usageButton = findViewById(R.id.usageButton)
         permissionButton = findViewById(R.id.permissionButton)
-        alertSettingsButton = findViewById(R.id.alertSettingsButton)
 
         // ハイライトUIのfindViewById
         highlightCard = findViewById(R.id.highlightCard)
@@ -100,9 +99,11 @@ class MainActivity : AppCompatActivity() {
             requestUsageStatsPermission()
         }
 
-        alertSettingsButton.setOnClickListener {
-            startActivity(Intent(this, AlertSettingsActivity::class.java))
+        if (hasUsageStatsPermission()) {
+            startTrackingService()
         }
+
+
     }
 
     override fun onResume() {
@@ -112,6 +113,15 @@ class MainActivity : AppCompatActivity() {
         } else {
             totalUsageTextView.text = "累計使用時間：権限が必要です"
             highlightCard.visibility = View.GONE
+        }
+    }
+
+    private fun startTrackingService() {
+        val serviceIntent = Intent(this, UsageTrackingService::class.java)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            startForegroundService(serviceIntent)
+        } else {
+            startService(serviceIntent)
         }
     }
 

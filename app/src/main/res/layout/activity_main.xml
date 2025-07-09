@@ -21,18 +21,6 @@
             app:title="@string/app_name" />
     </com.google.android.material.appbar.AppBarLayout>
 
-    <!-- 【追加】バックグラウンド記録を制御するトグルボタン -->
-    <ToggleButton
-        android:id="@+id/trackingToggleButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginEnd="16dp"
-        android:textOff="記録OFF"
-        android:textOn="記録ON"
-        app:layout_constraintBottom_toBottomOf="@id/appBarLayout"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="@id/appBarLayout" />
-
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -262,14 +250,6 @@
                 android:layout_marginTop="32dp"
                 android:layout_marginBottom="8dp"/>
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/alertSettingsButton"
-                style="@style/Widget.App.Button.Text"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center_horizontal"
-                app:icon="@drawable/ic_alert_24"
-                android:text="アラートを設定"/>
 
 
             <com.google.android.material.button.MaterialButton

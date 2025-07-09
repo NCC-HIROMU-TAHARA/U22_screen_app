@@ -1,3 +1,4 @@
+// app/src/main/java/WTAY/screen_app_u22/UsageStatsHelper.kt
 package WTAY.screen_app_u22
 
 import android.app.usage.UsageEvents
@@ -5,6 +6,8 @@ import android.app.usage.UsageStats
 import android.app.usage.UsageStatsManager
 import android.content.Context
 import android.content.pm.PackageManager
+import WTAY.screen_app_u22.db.AppDatabase // RoomのDBをインポート
+import WTAY.screen_app_u22.db.AppUsageEntity // RoomのEntityをインポート
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.util.*
@@ -12,7 +15,11 @@ import java.util.concurrent.TimeUnit
 
 class UsageStatsHelper(private val context: Context) {
 
-    private val dataStore = AppDataStore(context)
+    // ▼▼▼ DataStoreの代わりに、AppDatabase(Room)とAppPreferencesを使うように変更 ▼▼▼
+    private val appUsageDao = AppDatabase.getInstance(context).appUsageDao()
+    private val appPreferences = AppPreferences(context)
+    // ▲▲▲ ここまで変更 ▲▲▲
+
     private val usageStatsManager = context.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
     private val packageManager: PackageManager = context.packageManager
 
@@ -25,7 +32,8 @@ class UsageStatsHelper(private val context: Context) {
     }
 
     suspend fun updateCumulativeUsage() {
-        val lastUpdateTime = dataStore.getLastUpdateTime()
+        // ▼▼▼ DataStoreからAppPreferencesへの変更 ▼▼▼
+        val lastUpdateTime = appPreferences.lastUpdateTime
         val currentTime = System.currentTimeMillis()
 
         val startTime = if (lastUpdateTime == 0L) {
@@ -40,12 +48,13 @@ class UsageStatsHelper(private val context: Context) {
 
         val stats = getAppUsageStats(startTime, currentTime)
         if (stats.isEmpty()) {
-            dataStore.saveUsageData(emptyMap(), currentTime)
+            // ▼▼▼ 更新時刻だけ保存 ▼▼▼
+            appPreferences.lastUpdateTime = currentTime
             return
         }
 
-        val currentData = dataStore.getAllUsageData().toMutableMap()
-        currentData.remove(AppDataStore.KEY_LAST_UPDATE.name)
+        // ▼▼▼ Roomから現在のデータを取得 ▼▼▼
+        val currentData = appUsageDao.getAllUsageMap().toMutableMap()
 
 
         stats.forEach { stat ->
@@ -53,18 +62,17 @@ class UsageStatsHelper(private val context: Context) {
             currentData[stat.packageName] = currentTotal + stat.totalTimeInForeground
         }
 
-        dataStore.saveUsageData(currentData, currentTime)
+        // ▼▼▼ Roomにデータを保存し、最終更新時刻も保存 ▼▼▼
+        val entitiesToUpdate = currentData.map { (packageName, time) ->
+            AppUsageEntity(packageName, time)
+        }
+        appUsageDao.upsertAll(entitiesToUpdate)
+        appPreferences.lastUpdateTime = currentTime
     }
 
     suspend fun getAllAppsTotalUsageTime(): Long {
-        val allData = dataStore.getAllUsageData()
-        var totalTime = 0L
-        allData.forEach { (key, value) ->
-            if (key != AppDataStore.KEY_LAST_UPDATE.name) {
-                totalTime += value
-            }
-        }
-        return totalTime
+        // ▼▼▼ Roomから合計時間を直接取得するよう変更 ▼▼▼
+        return appUsageDao.getTotalUsageTime()
     }
 
     /**
