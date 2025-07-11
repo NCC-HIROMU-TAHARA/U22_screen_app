@@ -1,11 +1,11 @@
-package WTAY.screen_app_u22.db
+package WTAY.screen_app_u22.db // ← ".db" を追加
 
 import androidx.room.Entity
-import androidx.room.PrimaryKey
 
-@Entity(tableName = "app_usage")
+@Entity(primaryKeys = ["packageName", "date"])
 data class AppUsageEntity(
-    @PrimaryKey
     val packageName: String,
-    val usageTime: Long
+    val appName: String,
+    val usageTime: Long,
+    val date: Long
 )
