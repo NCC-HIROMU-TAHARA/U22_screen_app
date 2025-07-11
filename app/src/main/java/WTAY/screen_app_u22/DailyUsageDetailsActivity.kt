@@ -1,6 +1,7 @@
 package WTAY.screen_app_u22
 
 import android.os.Bundle
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -10,7 +11,7 @@ import kotlinx.coroutines.launch
 
 class DailyUsageDetailsActivity : AppCompatActivity() {
 
-    private lateinit var usageHelper: UsageStatsHelper // usageHelperを使用する
+    private lateinit var usageHelper: UsageStatsHelper
     private lateinit var dailyUsageRecyclerView: RecyclerView
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -23,7 +24,6 @@ class DailyUsageDetailsActivity : AppCompatActivity() {
         supportActionBar?.title = "今日のアプリ利用履歴"
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
 
-        // ▼▼▼ usageHelperを初期化 ▼▼▼
         usageHelper = UsageStatsHelper(this)
         dailyUsageRecyclerView = findViewById(R.id.dailyUsageRecyclerView)
         dailyUsageRecyclerView.layoutManager = LinearLayoutManager(this)
@@ -32,13 +32,18 @@ class DailyUsageDetailsActivity : AppCompatActivity() {
     }
 
     private fun displayDailyUsageDetails() {
-        // ▼▼▼ UsageStatsHelper を使うシンプルなロジックに戻す ▼▼▼
         lifecycleScope.launch {
-            // UsageStatsHelperから、整形済みの「今日の利用状況」リストを直接取得します。
             val displayList = usageHelper.getDailyUsage()
 
-            // アダプターに取得したリストをセットして表示します。
-            val adapter = UsageListAdapter(this@DailyUsageDetailsActivity, displayList)
+            // ▼▼▼ アダプター作成時にクリック処理を渡す ▼▼▼
+            val adapter = UsageListAdapter(this@DailyUsageDetailsActivity, displayList) { packageName ->
+                val intent = packageManager.getLaunchIntentForPackage(packageName)
+                if (intent != null) {
+                    startActivity(intent)
+                } else {
+                    Toast.makeText(this@DailyUsageDetailsActivity, "このアプリは起動できません", Toast.LENGTH_SHORT).show()
+                }
+            }
             dailyUsageRecyclerView.adapter = adapter
         }
     }

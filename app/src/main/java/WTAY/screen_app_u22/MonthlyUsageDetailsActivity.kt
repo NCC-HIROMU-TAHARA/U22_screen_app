@@ -1,6 +1,7 @@
 package WTAY.screen_app_u22
 
 import android.os.Bundle
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -10,7 +11,7 @@ import kotlinx.coroutines.launch
 
 class MonthlyUsageDetailsActivity : AppCompatActivity() {
 
-    private lateinit var usageHelper: UsageStatsHelper // usageHelperを使用する
+    private lateinit var usageHelper: UsageStatsHelper
     private lateinit var monthlyUsageRecyclerView: RecyclerView
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -22,7 +23,6 @@ class MonthlyUsageDetailsActivity : AppCompatActivity() {
         supportActionBar?.title = "今月のアプリ利用履歴"
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
 
-        // ▼▼▼ usageHelperを初期化 ▼▼▼
         usageHelper = UsageStatsHelper(this)
         monthlyUsageRecyclerView = findViewById(R.id.monthlyUsageRecyclerView)
         monthlyUsageRecyclerView.layoutManager = LinearLayoutManager(this)
@@ -31,13 +31,18 @@ class MonthlyUsageDetailsActivity : AppCompatActivity() {
     }
 
     private fun displayMonthlyUsageDetails() {
-        // ▼▼▼ UsageStatsHelper を使うシンプルなロジックに戻す ▼▼▼
         lifecycleScope.launch {
-            // UsageStatsHelperから、整形済みの「今月の利用状況」リストを直接取得します。
             val displayList = usageHelper.getMonthlyUsageFromDbAsync()
 
-            // アダプターに取得したリストをセットして表示します。
-            val adapter = UsageListAdapter(this@MonthlyUsageDetailsActivity, displayList)
+            // ▼▼▼ アダプター作成時にクリック処理を渡す ▼▼▼
+            val adapter = UsageListAdapter(this@MonthlyUsageDetailsActivity, displayList) { packageName ->
+                val intent = packageManager.getLaunchIntentForPackage(packageName)
+                if (intent != null) {
+                    startActivity(intent)
+                } else {
+                    Toast.makeText(this@MonthlyUsageDetailsActivity, "このアプリは起動できません", Toast.LENGTH_SHORT).show()
+                }
+            }
             monthlyUsageRecyclerView.adapter = adapter
         }
     }

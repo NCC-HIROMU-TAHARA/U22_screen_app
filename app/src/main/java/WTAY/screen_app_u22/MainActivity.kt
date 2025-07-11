@@ -7,6 +7,7 @@ import android.os.Bundle
 import android.provider.Settings
 import android.view.View
 import android.widget.Button
+import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
@@ -23,6 +24,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var highlightCard: MaterialCardView
     private lateinit var tvMostLaunchedAppName: TextView
     private lateinit var buttonPermission: Button
+    private lateinit var buttonRefresh: Button
+    private lateinit var progressBar: ProgressBar
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -35,12 +38,10 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        // 権限を確認してUIを更新
         if (hasUsageStatsPermission()) {
             buttonPermission.visibility = View.GONE
             loadAndDisplayData()
         } else {
-            // 権限がない場合のUI表示
             buttonPermission.visibility = View.VISIBLE
             tvTodayTotal.text = "- 時間 - 分"
             tvCumulativeTotal.text = "- 時間 - 分"
@@ -55,6 +56,8 @@ class MainActivity : AppCompatActivity() {
         highlightCard = findViewById(R.id.highlight_card)
         tvMostLaunchedAppName = findViewById(R.id.tv_most_launched_app_name)
         buttonPermission = findViewById(R.id.button_permission)
+        buttonRefresh = findViewById(R.id.button_refresh)
+        progressBar = findViewById(R.id.progress_bar)
 
         // Set click listeners
         findViewById<Button>(R.id.button_daily).setOnClickListener {
@@ -66,7 +69,7 @@ class MainActivity : AppCompatActivity() {
         findViewById<Button>(R.id.button_monthly).setOnClickListener {
             startActivity(Intent(this, MonthlyUsageDetailsActivity::class.java))
         }
-        findViewById<Button>(R.id.button_refresh).setOnClickListener {
+        buttonRefresh.setOnClickListener {
             if(hasUsageStatsPermission()) {
                 loadAndDisplayData()
             }
@@ -77,22 +80,32 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun loadAndDisplayData() {
+        // ▼▼▼ UIの表示/非表示を切り替え ▼▼▼
+        buttonRefresh.visibility = View.INVISIBLE
+        progressBar.visibility = View.VISIBLE
+
         lifecycleScope.launch {
-            // 今日の合計時間を取得して表示
-            val todaysTotal = usageHelper.getTodaysTotalUsage()
-            tvTodayTotal.text = usageHelper.formatDuration(todaysTotal)
+            try {
+                // 今日の合計時間を取得して表示
+                val todaysTotal = usageHelper.getTodaysTotalUsage()
+                tvTodayTotal.text = usageHelper.formatDuration(todaysTotal)
 
-            // 累計時間を取得して表示
-            val cumulativeTotal = usageHelper.getCumulativeTotalUsage()
-            tvCumulativeTotal.text = usageHelper.formatDuration(cumulativeTotal)
+                // 累計時間を取得して表示
+                val cumulativeTotal = usageHelper.getCumulativeTotalUsage()
+                tvCumulativeTotal.text = usageHelper.formatDuration(cumulativeTotal)
 
-            // 最多起動アプリを取得して表示
-            val mostLaunched = usageHelper.getMostLaunchedAppToday()
-            if (mostLaunched != null && mostLaunched.launchCount > 0) {
-                tvMostLaunchedAppName.text = "${mostLaunched.appName} (${mostLaunched.launchCount}回)"
-                highlightCard.visibility = View.VISIBLE
-            } else {
-                highlightCard.visibility = View.GONE
+                // 最多起動アプリを取得して表示
+                val mostLaunched = usageHelper.getMostLaunchedAppToday()
+                if (mostLaunched != null && mostLaunched.launchCount > 0) {
+                    tvMostLaunchedAppName.text = "${mostLaunched.appName} (${mostLaunched.launchCount}回)"
+                    highlightCard.visibility = View.VISIBLE
+                } else {
+                    highlightCard.visibility = View.GONE
+                }
+            } finally {
+                // ▼▼▼ 処理完了後にUIを元に戻す ▼▼▼
+                buttonRefresh.visibility = View.VISIBLE
+                progressBar.visibility = View.GONE
             }
         }
     }
