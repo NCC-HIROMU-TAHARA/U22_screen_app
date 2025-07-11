@@ -1,23 +1,19 @@
 package WTAY.screen_app_u22.db
 
 import androidx.room.Dao
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
 import androidx.room.Query
-import androidx.room.Upsert
 
 @Dao
 interface AppUsageDao {
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertOrUpdate(appUsage: AppUsageEntity)
 
-    @Upsert
-    suspend fun upsertAll(appUsages: List<AppUsageEntity>)
+    @Query("SELECT * FROM AppUsageEntity WHERE date >= :startTime AND date <= :endTime")
+    suspend fun getUsageForPeriod(startTime: Long, endTime: Long): List<AppUsageEntity>
 
-    @Query("SELECT * FROM app_usage")
-    suspend fun getAll(): List<AppUsageEntity>
-
-    @Query("SELECT SUM(usageTime) FROM app_usage")
-    suspend fun getTotalUsageTime(): Long
-
-    // getAllをMap<String, Long>で返すヘルパーメソッド
-    suspend fun getAllUsageMap(): Map<String, Long> {
-        return getAll().associate { it.packageName to it.usageTime }
-    }
+    // ▼▼▼ [新設] 全てのAppUsageEntityを取得するメソッド ▼▼▼
+    @Query("SELECT * FROM AppUsageEntity")
+    suspend fun getAllUsage(): List<AppUsageEntity>
 }

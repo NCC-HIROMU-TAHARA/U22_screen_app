@@ -12,18 +12,23 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import java.util.concurrent.TimeUnit
 
-class UsageListAdapter(private val context: Context, private val usageStatsList: List<AppUsageDisplayItem>) :
+class UsageListAdapter(private val context: Context, private var usageStatsList: List<AppUsageDisplayItem>) :
     RecyclerView.Adapter<UsageListAdapter.ViewHolder>() {
 
-    // リスト内の最大利用時間を保持
-    private val maxUsageTime = usageStatsList.maxOfOrNull { it.totalTimeInForeground } ?: 1L
+    private var maxUsageTime = usageStatsList.maxOfOrNull { it.usageTime } ?: 1L
 
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val appIconImageView: ImageView = view.findViewById(R.id.appIconImageView)
         val appNameTextView: TextView = view.findViewById(R.id.textViewAppName)
         val packageNameTextView: TextView = view.findViewById(R.id.textViewPackageName)
         val usageTimeTextView: TextView = view.findViewById(R.id.textViewUsageTime)
-        val usageProgressBar: ProgressBar = view.findViewById(R.id.usageProgressBar) // ProgressBar
+        val usageProgressBar: ProgressBar = view.findViewById(R.id.usageProgressBar)
+    }
+
+    fun updateData(newUsageStatsList: List<AppUsageDisplayItem>) {
+        this.usageStatsList = newUsageStatsList
+        this.maxUsageTime = newUsageStatsList.maxOfOrNull { it.usageTime } ?: 1L
+        notifyDataSetChanged()
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -36,18 +41,21 @@ class UsageListAdapter(private val context: Context, private val usageStatsList:
         val item = usageStatsList[position]
         holder.appNameTextView.text = item.appName
         holder.packageNameTextView.text = item.packageName
-        holder.usageTimeTextView.text = formatMillisToHoursMinutes(item.totalTimeInForeground)
+        holder.usageTimeTextView.text = formatMillisToHoursMinutes(item.usageTime)
 
         try {
             val icon: Drawable = context.packageManager.getApplicationIcon(item.packageName)
             holder.appIconImageView.setImageDrawable(icon)
         } catch (e: PackageManager.NameNotFoundException) {
-            holder.appIconImageView.setImageResource(R.mipmap.ic_launcher) // Default icon
+            holder.appIconImageView.setImageResource(R.mipmap.ic_launcher)
         }
 
-        // プログレスバーの値を設定
-        val progress = (item.totalTimeInForeground * 100 / maxUsageTime).toInt()
-        holder.usageProgressBar.progress = progress
+        if (maxUsageTime > 0) {
+            val progress = (item.usageTime * 100 / maxUsageTime).toInt()
+            holder.usageProgressBar.progress = progress
+        } else {
+            holder.usageProgressBar.progress = 0
+        }
     }
 
     override fun getItemCount() = usageStatsList.size

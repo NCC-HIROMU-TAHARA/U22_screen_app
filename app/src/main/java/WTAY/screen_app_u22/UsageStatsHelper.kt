@@ -1,4 +1,3 @@
-// app/src/main/java/WTAY/screen_app_u22/UsageStatsHelper.kt
 package WTAY.screen_app_u22
 
 import android.app.usage.UsageEvents
@@ -6,170 +5,140 @@ import android.app.usage.UsageStats
 import android.app.usage.UsageStatsManager
 import android.content.Context
 import android.content.pm.PackageManager
-import WTAY.screen_app_u22.db.AppDatabase // RoomのDBをインポート
-import WTAY.screen_app_u22.db.AppUsageEntity // RoomのEntityをインポート
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import WTAY.screen_app_u22.db.AppDatabase
 import java.util.*
 import java.util.concurrent.TimeUnit
 
 class UsageStatsHelper(private val context: Context) {
 
-    // ▼▼▼ DataStoreの代わりに、AppDatabase(Room)とAppPreferencesを使うように変更 ▼▼▼
-    private val appUsageDao = AppDatabase.getInstance(context).appUsageDao()
-    private val appPreferences = AppPreferences(context)
-    // ▲▲▲ ここまで変更 ▲▲▲
+    private val usageStatsManager =
+        context.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
+    private val packageManager = context.packageManager
+    private val db = AppDatabase.getDatabase(context)
 
-    private val usageStatsManager = context.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
-    private val packageManager: PackageManager = context.packageManager
+    // ▼▼▼ [新設] 今日の合計利用時間を取得するメソッド ▼▼▼
+    fun getTodaysTotalUsage(): Long {
+        return getDailyUsage().sumOf { it.usageTime }
+    }
 
-    fun getAppUsageStats(startTime: Long, endTime: Long): List<UsageStats> {
-        return usageStatsManager.queryUsageStats(
+    // ▼▼▼ [新設] DBから累計利用時間を取得するメソッド ▼▼▼
+    suspend fun getCumulativeTotalUsage(): Long {
+        // DBにある過去の全データと、今日のリアルタイムデータを合算する
+        val historicalData = db.appUsageDao().getAllUsage() // 全データを取得するDAOメソッドが必要
+        val todaysTotal = getTodaysTotalUsage()
+
+        // 過去のデータは日ごとに記録されているので、重複を考慮せず合算
+        val historicalTotal = historicalData.sumOf { it.usageTime }
+
+        return historicalTotal + todaysTotal
+    }
+
+    // [機能7] 今日の最多起動アプリを取得するメソッド
+    fun getMostLaunchedAppToday(): AppUsageDisplayItem? {
+        val dailyUsage = getDailyUsage()
+        return dailyUsage.maxByOrNull { it.launchCount }
+    }
+
+    // [今日] 今日の利用状況をリアルタイムで取得
+    fun getDailyUsage(): List<AppUsageDisplayItem> {
+        val cal = Calendar.getInstance()
+        val endTime = cal.timeInMillis
+        cal.set(Calendar.HOUR_OF_DAY, 0); cal.set(Calendar.MINUTE, 0); cal.set(Calendar.SECOND, 0); cal.set(Calendar.MILLISECOND, 0)
+        val startTime = cal.timeInMillis
+        return getUsageForPeriodFromApi(startTime, endTime)
+    }
+
+    // [今週] 週間の利用状況を取得
+    suspend fun getWeeklyUsageFromDbAsync(): List<AppUsageDisplayItem> {
+        val cal = Calendar.getInstance()
+        val endTime = cal.timeInMillis
+        cal.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY)
+        cal.set(Calendar.HOUR_OF_DAY, 0); cal.set(Calendar.MINUTE, 0); cal.set(Calendar.SECOND, 0); cal.set(Calendar.MILLISECOND, 0)
+        val startTime = cal.timeInMillis
+        return getUsageForPeriodFromDbAndApi(startTime, endTime)
+    }
+
+    // [今月] 月間の利用状況を取得
+    suspend fun getMonthlyUsageFromDbAsync(): List<AppUsageDisplayItem> {
+        val cal = Calendar.getInstance()
+        val endTime = cal.timeInMillis
+        cal.set(Calendar.DAY_OF_MONTH, 1)
+        cal.set(Calendar.HOUR_OF_DAY, 0); cal.set(Calendar.MINUTE, 0); cal.set(Calendar.SECOND, 0); cal.set(Calendar.MILLISECOND, 0)
+        val startTime = cal.timeInMillis
+        return getUsageForPeriodFromDbAndApi(startTime, endTime)
+    }
+
+    private suspend fun getUsageForPeriodFromDbAndApi(startTime: Long, endTime: Long): List<AppUsageDisplayItem> {
+        val historicalData = db.appUsageDao().getUsageForPeriod(startTime, endTime)
+        val todaysData = getDailyUsage()
+        val aggregatedStats = mutableMapOf<String, Pair<String, Long>>()
+
+        historicalData.forEach { entity ->
+            val currentTotal = aggregatedStats[entity.packageName]?.second ?: 0L
+            aggregatedStats[entity.packageName] = Pair(entity.appName, currentTotal + entity.usageTime)
+        }
+
+        todaysData.forEach { item ->
+            val currentTotal = aggregatedStats[item.packageName]?.second ?: 0L
+            aggregatedStats[item.packageName] = Pair(item.appName, currentTotal + item.usageTime)
+        }
+        return aggregatedStats.map { (packageName, data) ->
+            AppUsageDisplayItem(packageName = packageName, appName = data.first, usageTime = data.second)
+        }.sortedByDescending { it.usageTime }
+    }
+
+    fun fetchAndAggregateUsage(startTime: Long, endTime: Long): List<AppUsageDisplayItem> {
+        return getUsageForPeriodFromApi(startTime, endTime)
+    }
+
+    private fun getUsageForPeriodFromApi(startTime: Long, endTime: Long): List<AppUsageDisplayItem> {
+        val usageStatsList: List<UsageStats> = usageStatsManager.queryUsageStats(
             UsageStatsManager.INTERVAL_DAILY,
             startTime,
             endTime
-        ).filter { it.totalTimeInForeground > 0 }
-    }
+        )
 
-    suspend fun updateCumulativeUsage() {
-        // ▼▼▼ DataStoreからAppPreferencesへの変更 ▼▼▼
-        val lastUpdateTime = appPreferences.lastUpdateTime
-        val currentTime = System.currentTimeMillis()
-
-        val startTime = if (lastUpdateTime == 0L) {
-            currentTime - TimeUnit.DAYS.toMillis(1)
-        } else {
-            lastUpdateTime
-        }
-
-        if (currentTime - startTime < TimeUnit.MINUTES.toMillis(1)) {
-            return
-        }
-
-        val stats = getAppUsageStats(startTime, currentTime)
-        if (stats.isEmpty()) {
-            // ▼▼▼ 更新時刻だけ保存 ▼▼▼
-            appPreferences.lastUpdateTime = currentTime
-            return
-        }
-
-        // ▼▼▼ Roomから現在のデータを取得 ▼▼▼
-        val currentData = appUsageDao.getAllUsageMap().toMutableMap()
-
-
-        stats.forEach { stat ->
-            val currentTotal = currentData.getOrDefault(stat.packageName, 0L)
-            currentData[stat.packageName] = currentTotal + stat.totalTimeInForeground
-        }
-
-        // ▼▼▼ Roomにデータを保存し、最終更新時刻も保存 ▼▼▼
-        val entitiesToUpdate = currentData.map { (packageName, time) ->
-            AppUsageEntity(packageName, time)
-        }
-        appUsageDao.upsertAll(entitiesToUpdate)
-        appPreferences.lastUpdateTime = currentTime
-    }
-
-    suspend fun getAllAppsTotalUsageTime(): Long {
-        // ▼▼▼ Roomから合計時間を直接取得するよう変更 ▼▼▼
-        return appUsageDao.getTotalUsageTime()
-    }
-
-    /**
-     * 今日のハイライト（最多起動アプリ、時間帯別最長利用アプリ）を分析する
-     */
-    suspend fun analyzeTodayHighlights(): TodayHighlight {
-        return withContext(Dispatchers.IO) {
-            val calendar = Calendar.getInstance()
-            calendar.set(Calendar.HOUR_OF_DAY, 0)
-            calendar.set(Calendar.MINUTE, 0)
-            calendar.set(Calendar.SECOND, 0)
-            calendar.set(Calendar.MILLISECOND, 0)
-            val startTime = calendar.timeInMillis
-            val endTime = System.currentTimeMillis()
-
-            val usageEvents = usageStatsManager.queryEvents(startTime, endTime)
-
-            val launchCounts = mutableMapOf<String, Int>()
-            val usageTimeBySlot = mapOf(
-                "morning" to mutableMapOf<String, Long>(),
-                "day" to mutableMapOf<String, Long>(),
-                "night" to mutableMapOf<String, Long>()
-            )
-            val appForegroundTimestamps = mutableMapOf<String, Long>()
-
-            while (usageEvents.hasNextEvent()) {
-                val event = UsageEvents.Event()
-                usageEvents.getNextEvent(event)
-
-                if (event.eventType == UsageEvents.Event.MOVE_TO_FOREGROUND) {
-                    val count = launchCounts.getOrDefault(event.packageName, 0)
-                    launchCounts[event.packageName] = count + 1
-                }
-
-                when (event.eventType) {
-                    UsageEvents.Event.MOVE_TO_FOREGROUND -> {
-                        appForegroundTimestamps[event.packageName] = event.timeStamp
-                    }
-                    UsageEvents.Event.MOVE_TO_BACKGROUND -> {
-                        val foregroundTime = appForegroundTimestamps[event.packageName]
-                        if (foregroundTime != null) {
-                            val duration = event.timeStamp - foregroundTime
-                            if (duration > 0) {
-                                val slot = getTimeSlot(foregroundTime)
-                                val currentDuration = usageTimeBySlot[slot]!!.getOrDefault(event.packageName, 0L)
-                                usageTimeBySlot[slot]!![event.packageName] = currentDuration + duration
-                            }
-                            appForegroundTimestamps.remove(event.packageName)
-                        }
-                    }
-                }
+        val launchCountMap = mutableMapOf<String, Int>()
+        val events = usageStatsManager.queryEvents(startTime, endTime)
+        val event = UsageEvents.Event()
+        while (events.hasNextEvent()) {
+            events.getNextEvent(event)
+            if (event.eventType == UsageEvents.Event.MOVE_TO_FOREGROUND) {
+                val currentCount = launchCountMap.getOrDefault(event.packageName, 0)
+                launchCountMap[event.packageName] = currentCount + 1
             }
+        }
 
-            val mostLaunchedEntry = launchCounts.maxByOrNull { it.value }
-            val mostLaunchedApp = mostLaunchedEntry?.let {
-                AppInfo(
-                    packageName = it.key,
-                    appName = getAppName(it.key),
-                    launchCount = it.value
-                )
+        val aggregatedStats = mutableMapOf<String, Long>()
+        for (usageStats in usageStatsList) {
+            val currentTotal = aggregatedStats.getOrDefault(usageStats.packageName, 0L)
+            aggregatedStats[usageStats.packageName] = currentTotal + usageStats.totalTimeInForeground
+        }
+
+        return aggregatedStats.mapNotNull { (packageName, totalTime) ->
+            try {
+                val appInfo = packageManager.getApplicationInfo(packageName, 0)
+                if (packageName == context.packageName) return@mapNotNull null
+                val appName = packageManager.getApplicationLabel(appInfo).toString()
+                if (totalTime > 0) {
+                    val launchCount = launchCountMap[packageName] ?: 0
+                    AppUsageDisplayItem(packageName = packageName, appName = appName, usageTime = totalTime, launchCount = launchCount)
+                } else {
+                    null
+                }
+            } catch (e: PackageManager.NameNotFoundException) {
+                null
             }
-
-            val morningTop = getTopAppForSlot(usageTimeBySlot["morning"])
-            val dayTop = getTopAppForSlot(usageTimeBySlot["day"])
-            val nightTop = getTopAppForSlot(usageTimeBySlot["night"])
-            val timeSlotUsage = TimeSlotUsage(morningTop, dayTop, nightTop)
-
-            TodayHighlight(mostLaunchedApp, timeSlotUsage)
-        }
+        }.sortedByDescending { it.usageTime }
     }
 
-    private fun getTimeSlot(timestamp: Long): String {
-        val calendar = Calendar.getInstance().apply { timeInMillis = timestamp }
-        return when (calendar.get(Calendar.HOUR_OF_DAY)) {
-            in 5..11 -> "morning"
-            in 12..17 -> "day"
-            else -> "night"
-        }
-    }
-
-    private fun getTopAppForSlot(usageMap: Map<String, Long>?): AppInfo? {
-        val topEntry = usageMap?.maxByOrNull { it.value }
-        return topEntry?.let {
-            AppInfo(
-                packageName = it.key,
-                appName = getAppName(it.key),
-                usageTime = it.value
-            )
-        }
-    }
-
-    private fun getAppName(packageName: String): String {
-        return try {
-            val appInfo = packageManager.getApplicationInfo(packageName, 0)
-            packageManager.getApplicationLabel(appInfo).toString()
-        } catch (e: PackageManager.NameNotFoundException) {
-            packageName
+    fun formatDuration(millis: Long): String {
+        val hours = TimeUnit.MILLISECONDS.toHours(millis)
+        val minutes = TimeUnit.MILLISECONDS.toMinutes(millis) % 60
+        return when {
+            hours > 0 -> "${hours}時間 ${minutes}分"
+            minutes > 0 -> "${minutes}分"
+            else -> "< 1分"
         }
     }
 }
