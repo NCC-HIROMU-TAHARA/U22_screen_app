@@ -12,17 +12,29 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import java.util.concurrent.TimeUnit
 
-class UsageListAdapter(private val context: Context, private var usageStatsList: List<AppUsageDisplayItem>) :
-    RecyclerView.Adapter<UsageListAdapter.ViewHolder>() {
+// ▼▼▼ クリックイベントを処理するためのインターフェースを追加 ▼▼▼
+class UsageListAdapter(
+    private val context: Context,
+    private var usageStatsList: List<AppUsageDisplayItem>,
+    private val onItemClicked: (String) -> Unit // package name を引数に取るラムダ式
+) : RecyclerView.Adapter<UsageListAdapter.ViewHolder>() {
 
     private var maxUsageTime = usageStatsList.maxOfOrNull { it.usageTime } ?: 1L
 
-    class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+    // ▼▼▼ ViewHolderにクリックリスナーを設定 ▼▼▼
+    inner class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val appIconImageView: ImageView = view.findViewById(R.id.appIconImageView)
         val appNameTextView: TextView = view.findViewById(R.id.textViewAppName)
         val packageNameTextView: TextView = view.findViewById(R.id.textViewPackageName)
         val usageTimeTextView: TextView = view.findViewById(R.id.textViewUsageTime)
         val usageProgressBar: ProgressBar = view.findViewById(R.id.usageProgressBar)
+
+        init {
+            itemView.setOnClickListener {
+                // クリックされた位置のパッケージ名をコールバックで渡す
+                onItemClicked(usageStatsList[adapterPosition].packageName)
+            }
+        }
     }
 
     fun updateData(newUsageStatsList: List<AppUsageDisplayItem>) {

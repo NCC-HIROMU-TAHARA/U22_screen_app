@@ -160,16 +160,30 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- 更新ボタン -->
-            <Button
-                android:id="@+id/button_refresh"
-                style="@style/Widget.Material3.Button.TextButton"
-                android:layout_width="wrap_content"
+            <!-- ▼▼▼ 更新ボタンとプログレスバー ▼▼▼ -->
+            <FrameLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_gravity="center_horizontal"
-                android:layout_marginTop="16dp"
-                android:text="使用状況を更新"
-                app:icon="@drawable/ic_update_24" />
+                android:layout_marginTop="16dp">
+
+                <Button
+                    android:id="@+id/button_refresh"
+                    style="@style/Widget.Material3.Button.TextButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:text="使用状況を更新"
+                    app:icon="@drawable/ic_update_24" />
+
+                <ProgressBar
+                    android:id="@+id/progress_bar"
+                    style="?android:attr/progressBarStyle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:visibility="gone"
+                    tools:visibility="visible" />
+            </FrameLayout>
 
             <!-- 権限設定ボタン -->
             <Button
