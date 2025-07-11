@@ -1,4 +1,10 @@
 <resources>
     <string name="app_name">見えるくん</string>
     <string name="title_activity_main.xml">activity_main.xml</string>
+    <string name="cumulative_usage_time_label">累計使用時間：</string>
+    <string name="updating_label">更新中…</string>
+    <string name="permission_required_label">権限が必要です</string>
+    <string name="time_unit_hour">時間</string>
+    <string name="time_unit_minute">分</string>
+    <string name="less_than_a_minute">&lt; 1分</string>
 </resources>

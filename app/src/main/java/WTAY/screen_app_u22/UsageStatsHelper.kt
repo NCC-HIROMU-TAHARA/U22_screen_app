@@ -12,6 +12,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.util.*
 import java.util.concurrent.TimeUnit
+import android.content.pm.ApplicationInfo
 
 class UsageStatsHelper(private val context: Context) {
 
@@ -23,12 +24,31 @@ class UsageStatsHelper(private val context: Context) {
     private val usageStatsManager = context.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
     private val packageManager: PackageManager = context.packageManager
 
+    private fun isUserApp(packageName: String): Boolean {
+        // 自分のアプリは除外する
+        if (packageName == context.packageName) {
+            return false
+        }
+        return try {
+            val appInfo = packageManager.getApplicationInfo(packageName, 0)
+            val isSystemApp = appInfo.flags and ApplicationInfo.FLAG_SYSTEM != 0
+            val isUpdatedSystemApp = appInfo.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP != 0
+            val hasLaunchIntent = packageManager.getLaunchIntentForPackage(packageName) != null
+
+            // ランチャーから起動可能であり、かつ、
+            // (非システムアプリであるか、または、更新されたシステムアプリである)
+            hasLaunchIntent && (!isSystemApp || isUpdatedSystemApp)
+        } catch (e: PackageManager.NameNotFoundException) {
+            false
+        }
+    }
+
     fun getAppUsageStats(startTime: Long, endTime: Long): List<UsageStats> {
         return usageStatsManager.queryUsageStats(
             UsageStatsManager.INTERVAL_DAILY,
             startTime,
             endTime
-        ).filter { it.totalTimeInForeground > 0 }
+        ).filter { it.totalTimeInForeground > 0 && isUserApp(it.packageName) }
     }
 
     suspend fun updateCumulativeUsage() {
@@ -36,10 +56,11 @@ class UsageStatsHelper(private val context: Context) {
         val lastUpdateTime = appPreferences.lastUpdateTime
         val currentTime = System.currentTimeMillis()
 
-        val startTime = if (lastUpdateTime == 0L) {
-            currentTime - TimeUnit.DAYS.toMillis(1)
-        } else {
-            lastUpdateTime
+        var startTime = lastUpdateTime
+        val twoDaysInMillis = TimeUnit.DAYS.toMillis(2)
+        if (lastUpdateTime == 0L || currentTime - lastUpdateTime > twoDaysInMillis) {
+            // 初回起動時、または最後の更新から2日以上経過している場合は、直近1日分だけを取得
+            startTime = currentTime - TimeUnit.DAYS.toMillis(1)
         }
 
         if (currentTime - startTime < TimeUnit.MINUTES.toMillis(1)) {
@@ -71,8 +92,15 @@ class UsageStatsHelper(private val context: Context) {
     }
 
     suspend fun getAllAppsTotalUsageTime(): Long {
-        // ▼▼▼ Roomから合計時間を直接取得するよう変更 ▼▼▼
-        return appUsageDao.getTotalUsageTime()
+        // ▼▼▼ DBから取得した全データに対してフィルタリングを適用 ▼▼▼
+        val allData = appUsageDao.getAll()
+        var totalTime = 0L
+        allData.forEach { entity ->
+            if (isUserApp(entity.packageName)) {
+                totalTime += entity.usageTime
+            }
+        }
+        return totalTime
     }
 
     /**
@@ -101,6 +129,8 @@ class UsageStatsHelper(private val context: Context) {
             while (usageEvents.hasNextEvent()) {
                 val event = UsageEvents.Event()
                 usageEvents.getNextEvent(event)
+
+                if (!isUserApp(event.packageName)) continue
 
                 if (event.eventType == UsageEvents.Event.MOVE_TO_FOREGROUND) {
                     val count = launchCounts.getOrDefault(event.packageName, 0)

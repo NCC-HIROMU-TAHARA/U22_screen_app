@@ -18,6 +18,7 @@ import kotlinx.coroutines.launch
 import java.util.concurrent.TimeUnit
 import WTAY.screen_app_u22.UsageStatsHelper
 import android.os.Build
+import java.util.Calendar
 
 class MainActivity : AppCompatActivity() {
 
@@ -28,6 +29,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var totalUsageTextView: TextView
     private lateinit var usageButton: Button
     private lateinit var permissionButton: Button
+
+    private lateinit var todayTotalUsage: TextView
 
     // ハイライト表示用のUIプロパティ
     private lateinit var highlightCard: MaterialCardView
@@ -51,6 +54,7 @@ class MainActivity : AppCompatActivity() {
         weeklyUsageDetailsButton = findViewById(R.id.weeklyUsageDetailsButton)
         monthlyUsageDetailsButton = findViewById(R.id.monthlyUsageDetailsButton)
         totalUsageTextView = findViewById(R.id.totalUsage)
+        todayTotalUsage = findViewById(R.id.todayTotalUsage)
         usageButton = findViewById(R.id.usageButton)
         permissionButton = findViewById(R.id.permissionButton)
 
@@ -109,6 +113,7 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         if (hasUsageStatsPermission()) {
+            startTrackingService()
             updateAndDisplayData()
         } else {
             totalUsageTextView.text = "累計使用時間：権限が必要です"
@@ -134,6 +139,18 @@ class MainActivity : AppCompatActivity() {
             usageHelper.updateCumulativeUsage()
             val totalTime = usageHelper.getAllAppsTotalUsageTime()
             totalUsageTextView.text = "累計使用時間：${formatMillisToHoursMinutes(totalTime)}"
+
+            val calendar = Calendar.getInstance()
+            calendar.set(Calendar.HOUR_OF_DAY, 0)
+            calendar.set(Calendar.MINUTE, 0)
+            calendar.set(Calendar.SECOND, 0)
+            calendar.set(Calendar.MILLISECOND, 0)
+            val startOfToday = calendar.timeInMillis
+            val endOfToday = System.currentTimeMillis()
+
+            val todayStats = usageHelper.getAppUsageStats(startOfToday, endOfToday)
+            val todayTotal = todayStats.sumOf { it.totalTimeInForeground }
+            todayTotalUsage.text = formatMillisToHoursMinutes(todayTotal)
 
             // ハイライトの分析と表示
             val highlights = usageHelper.analyzeTodayHighlights()

@@ -7,6 +7,7 @@ import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import kotlinx.coroutines.*
+import java.util.concurrent.TimeUnit
 
 class UsageTrackingService : Service() {
 
@@ -16,7 +17,9 @@ class UsageTrackingService : Service() {
     companion object {
         const val CHANNEL_ID = "UsageTrackingChannel"
         const val NOTIFICATION_ID = 1
-        private const val TRACKING_INTERVAL_MS = 1000 * 60 * 15L // 15分ごとに更新
+        // ▼▼▼ このように変更 ▼▼▼
+        private val TRACKING_INTERVAL_MINUTES = 60L
+        private val TRACKING_INTERVAL_MS = TimeUnit.MINUTES.toMillis(TRACKING_INTERVAL_MINUTES)
     }
 
     override fun onCreate() {
@@ -77,7 +80,7 @@ class UsageTrackingService : Service() {
             val serviceChannel = NotificationChannel(
                 CHANNEL_ID,
                 "Usage Tracking Service Channel",
-                NotificationManager.IMPORTANCE_LOW
+                NotificationManager.IMPORTANCE_MIN
             )
             val manager = getSystemService(NotificationManager::class.java)
             manager.createNotificationChannel(serviceChannel)
