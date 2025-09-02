@@ -2,6 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- 必要な権限 -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission
         android:name="android.permission.PACKAGE_USAGE_STATS"
@@ -9,8 +10,8 @@
     <uses-permission
         android:name="android.permission.QUERY_ALL_PACKAGES"
         tools:ignore="QueryAllPackagesPermission" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
-    <!-- アプリケーション全体の設定クラスを指定 -->
     <application
         android:name=".MainApplication"
         android:allowBackup="true"
@@ -20,7 +21,6 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.screen_app_u22">
 
-        <!-- 起動するメイン画面 -->
         <activity
             android:name=".MainActivity"
             android:exported="true">
@@ -29,10 +29,12 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
         <!-- その他の画面 -->
         <activity android:name=".DailyUsageDetailsActivity" android:label="今日の利用履歴" />
         <activity android:name=".WeeklyUsageDetailsActivity" android:label="今週の利用履歴" />
         <activity android:name=".MonthlyUsageDetailsActivity" android:label="今月の利用履歴" />
+        <activity android:name=".AlertSettingsActivity" android:label="アラート設定" />
 
     </application>
 </manifest>

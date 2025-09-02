@@ -35,6 +35,8 @@
         android:textAppearance="?attr/textAppearanceBodyLarge"
         android:visibility="gone"/>
 
+
+
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fab"
         android:layout_width="wrap_content"

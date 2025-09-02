@@ -1,19 +1,32 @@
-// app/src/main/java/WTAY/screen_app_u22/AppPreferences.kt
 package WTAY.screen_app_u22
 
 import android.content.Context
 import android.content.SharedPreferences
 
-class AppPreferences(context: Context) {
+object AppPreferences {
+    private const val NAME = "AlertPrefs"
+    private const val MODE = Context.MODE_PRIVATE
+    private lateinit var preferences: SharedPreferences
 
-    private val prefs: SharedPreferences =
-        context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
-
-    companion object {
-        private const val KEY_LAST_UPDATE = "last_cumulative_update_timestamp"
+    // アプリケーション起動時に一度だけ初期化する
+    fun init(context: Context) {
+        preferences = context.getSharedPreferences(NAME, MODE)
     }
 
-    var lastUpdateTime: Long
-        get() = prefs.getLong(KEY_LAST_UPDATE, 0L)
-        set(value) = prefs.edit().putLong(KEY_LAST_UPDATE, value).apply()
+    // アラート設定のキー（パッケージ名）と値（許容時間ミリ秒）を保存
+    fun setAlert(packageName: String, usageLimitMillis: Long) {
+        preferences.edit().putLong(packageName, usageLimitMillis).apply()
+    }
+
+    // アラート設定を削除
+    fun removeAlert(packageName: String) {
+        preferences.edit().remove(packageName).apply()
+    }
+
+    // 設定されているすべてのアラートを取得
+    fun getAllAlerts(): Map<String, Long> {
+        // SharedPreferences の getAll() は Map<String, *> を返すのでキャストする
+        @Suppress("UNCHECKED_CAST")
+        return preferences.all as Map<String, Long>
+    }
 }

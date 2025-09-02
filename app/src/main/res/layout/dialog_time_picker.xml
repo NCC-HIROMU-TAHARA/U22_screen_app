@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center"
+    android:padding="24dp">
+
+    <NumberPicker
+        android:id="@+id/hourPicker"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="時間"
+        android:layout_marginStart="8dp"
+        android:layout_marginEnd="16dp"
+        android:textAppearance="?attr/textAppearanceBodyLarge"/>
+
+    <NumberPicker
+        android:id="@+id/minutePicker"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="分"
+        android:layout_marginStart="8dp"
+        android:textAppearance="?attr/textAppearanceBodyLarge"/>
+
+</LinearLayout>
