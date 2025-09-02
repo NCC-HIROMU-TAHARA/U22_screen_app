@@ -1,12 +1,6 @@
-// このファイルはプロジェクトのトップレベルのビルドファイルです。
-// 各モジュールにプラグインを適用するには、モジュールレベルの build.gradle.kts ファイルを
-// 使用してください。
-
+// Top-level build file where you can add configuration options common to all sub-projects/modules.
 plugins {
-    // これらのプラグインは :app モジュールで適用されるため、
-    // ここでは `apply false` を付けて宣言だけを行います。
-    alias(libs.plugins.android.application) apply false
-    alias(libs.plugins.kotlin.android) apply false
-    alias(libs.plugins.kotlin.compose) apply false
-    alias(libs.plugins.ksp) apply false
+    alias(libs.plugins.androidApplication) apply false
+    // ▼▼▼ この行を修正 ▼▼▼
+    alias(libs.plugins.kotlinAndroid) apply false
 }

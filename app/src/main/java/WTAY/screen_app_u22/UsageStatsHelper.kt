@@ -6,6 +6,8 @@ import android.app.usage.UsageStatsManager
 import android.content.Context
 import android.content.pm.PackageManager
 import WTAY.screen_app_u22.db.AppDatabase
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.util.*
 import java.util.concurrent.TimeUnit
 
@@ -16,39 +18,32 @@ class UsageStatsHelper(private val context: Context) {
     private val packageManager = context.packageManager
     private val db = AppDatabase.getDatabase(context)
 
-    // ▼▼▼ [新設] 今日の合計利用時間を取得するメソッド ▼▼▼
-    fun getTodaysTotalUsage(): Long {
+    suspend fun getTodaysTotalUsage(): Long {
         return getDailyUsage().sumOf { it.usageTime }
     }
 
-    // ▼▼▼ [新設] DBから累計利用時間を取得するメソッド ▼▼▼
     suspend fun getCumulativeTotalUsage(): Long {
-        // DBにある過去の全データと、今日のリアルタイムデータを合算する
-        val historicalData = db.appUsageDao().getAllUsage() // 全データを取得するDAOメソッドが必要
+        val historicalData = db.appUsageDao().getAllUsage()
         val todaysTotal = getTodaysTotalUsage()
-
-        // 過去のデータは日ごとに記録されているので、重複を考慮せず合算
         val historicalTotal = historicalData.sumOf { it.usageTime }
-
         return historicalTotal + todaysTotal
     }
 
-    // [機能7] 今日の最多起動アプリを取得するメソッド
-    fun getMostLaunchedAppToday(): AppUsageDisplayItem? {
+    suspend fun getMostLaunchedAppToday(): AppUsageDisplayItem? {
         val dailyUsage = getDailyUsage()
         return dailyUsage.maxByOrNull { it.launchCount }
     }
 
-    // [今日] 今日の利用状況をリアルタイムで取得
-    fun getDailyUsage(): List<AppUsageDisplayItem> {
-        val cal = Calendar.getInstance()
-        val endTime = cal.timeInMillis
-        cal.set(Calendar.HOUR_OF_DAY, 0); cal.set(Calendar.MINUTE, 0); cal.set(Calendar.SECOND, 0); cal.set(Calendar.MILLISECOND, 0)
-        val startTime = cal.timeInMillis
-        return getUsageForPeriodFromApi(startTime, endTime)
+    suspend fun getDailyUsage(): List<AppUsageDisplayItem> {
+        return withContext(Dispatchers.IO) {
+            val cal = Calendar.getInstance()
+            val endTime = cal.timeInMillis
+            cal.set(Calendar.HOUR_OF_DAY, 0); cal.set(Calendar.MINUTE, 0); cal.set(Calendar.SECOND, 0); cal.set(Calendar.MILLISECOND, 0)
+            val startTime = cal.timeInMillis
+            getUsageForPeriodFromApi(startTime, endTime)
+        }
     }
 
-    // [今週] 週間の利用状況を取得
     suspend fun getWeeklyUsageFromDbAsync(): List<AppUsageDisplayItem> {
         val cal = Calendar.getInstance()
         val endTime = cal.timeInMillis
@@ -58,7 +53,6 @@ class UsageStatsHelper(private val context: Context) {
         return getUsageForPeriodFromDbAndApi(startTime, endTime)
     }
 
-    // [今月] 月間の利用状況を取得
     suspend fun getMonthlyUsageFromDbAsync(): List<AppUsageDisplayItem> {
         val cal = Calendar.getInstance()
         val endTime = cal.timeInMillis
@@ -91,7 +85,8 @@ class UsageStatsHelper(private val context: Context) {
         return getUsageForPeriodFromApi(startTime, endTime)
     }
 
-    private fun getUsageForPeriodFromApi(startTime: Long, endTime: Long): List<AppUsageDisplayItem> {
+    // ▼▼▼ ここの `private` を削除しました ▼▼▼
+    fun getUsageForPeriodFromApi(startTime: Long, endTime: Long): List<AppUsageDisplayItem> {
         val usageStatsList: List<UsageStats> = usageStatsManager.queryUsageStats(
             UsageStatsManager.INTERVAL_DAILY,
             startTime,
