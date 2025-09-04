@@ -3,6 +3,8 @@
     <!-- 基本色 -->
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+    <color name="blue">#1a9df1</color>
+    <color name="yellow">#ffd230</color>
 
     <!-- Material 3 Theme Colors (例) -->
     <color name="md_theme_primary">#00658E</color>
