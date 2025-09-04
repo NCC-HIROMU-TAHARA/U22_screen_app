@@ -11,7 +11,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import WTAY.screen_app_u22.databinding.FragmentAlertSettingsBinding // 新しいBindingクラスを生成
+import WTAY.screen_app_u22.databinding.FragmentAlertSettingsBinding
 import WTAY.screen_app_u22.databinding.DialogTimePickerBinding
 import java.util.concurrent.TimeUnit
 
@@ -21,6 +21,7 @@ class AlertSettingsFragment : Fragment() {
     private val binding get() = _binding!!
     private lateinit var adapter: AlertSettingsAdapter
     private var appSelectionDialog: AlertDialog? = null
+    private lateinit var usageStatsHelper: UsageStatsHelper // UsageStatsHelperのインスタンス
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -32,8 +33,11 @@ class AlertSettingsFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        // usageStatsHelperの初期化はonViewCreatedで行う
+        usageStatsHelper = UsageStatsHelper(requireContext()) // ここで初期化
 
         binding.fab.setOnClickListener {
+            // ▼▼▼ ここでshowAppSelectionDialogを呼び出す ▼▼▼
             showAppSelectionDialog()
         }
         setupRecyclerView()
@@ -95,7 +99,8 @@ class AlertSettingsFragment : Fragment() {
         val installedApps = mutableListOf<AppInfo>()
 
         for (info in resolveInfos) {
-            if (info.activityInfo.packageName != requireContext().packageName) {
+            // usageStatsHelperが既に初期化されていることを前提に呼び出し
+            if (usageStatsHelper.isAppDisplayable(info.activityInfo.packageName)) {
                 installedApps.add(
                     AppInfo(
                         packageName = info.activityInfo.packageName,
@@ -108,6 +113,7 @@ class AlertSettingsFragment : Fragment() {
         return installedApps.sortedBy { it.appName }
     }
 
+    // ▼▼▼ showAppSelectionDialog メソッドを追加/修正 ▼▼▼
     private fun showAppSelectionDialog() {
         val appList = getInstalledApps()
         val alreadyConfiguredPackages = AppPreferences.getAllAlerts().keys
@@ -132,6 +138,7 @@ class AlertSettingsFragment : Fragment() {
             .setNegativeButton("キャンセル", null)
             .show()
     }
+    // ▲▲▲ showAppSelectionDialog メソッドを追加/修正 ▲▲▲
 
     private fun showTimePickerDialog(appInfo: AppInfo) {
         val dialogBinding = DialogTimePickerBinding.inflate(LayoutInflater.from(requireContext()))
