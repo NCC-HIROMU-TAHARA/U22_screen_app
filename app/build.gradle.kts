@@ -33,7 +33,6 @@ android {
         jvmTarget = "1.8"
     }
     buildFeatures {
-        // XMLレイアウトでViewBindingを使用する
         viewBinding = true
     }
 }
@@ -53,6 +52,12 @@ dependencies {
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     kapt(libs.androidx.room.compiler)
+
+    // Fragment KTX (FragmentStateAdapterを利用するため)
+    implementation("androidx.fragment:fragment-ktx:1.8.9") // 必要に応じて最新バージョンを使用
+
+    // ViewPager2
+    implementation(libs.androidx.viewpager2) // 追加
 
     // テスト
     testImplementation(libs.junit)

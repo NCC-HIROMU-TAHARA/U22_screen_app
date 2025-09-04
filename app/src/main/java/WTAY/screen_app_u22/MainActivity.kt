@@ -1,128 +1,62 @@
 package WTAY.screen_app_u22
 
-import android.app.AppOpsManager
-import android.content.Context
-import android.content.Intent
 import android.os.Bundle
-import android.provider.Settings
 import android.view.Menu
 import android.view.MenuItem
-import android.view.View
 import androidx.appcompat.app.AppCompatActivity
-import androidx.lifecycle.lifecycleScope
-import WTAY.screen_app_u22.databinding.ActivityMainBinding // ★ ViewBindingのimportを追加
-import kotlinx.coroutines.launch
+import androidx.fragment.app.Fragment
+import WTAY.screen_app_u22.databinding.ActivityMainBinding
 
 class MainActivity : AppCompatActivity() {
 
-    private lateinit var usageHelper: UsageStatsHelper
-    private lateinit var binding: ActivityMainBinding // ★ bindingオブジェクトを宣言
+    private lateinit var binding: ActivityMainBinding
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // ★ ViewBindingを使ってレイアウトをセットアップ
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        usageHelper = UsageStatsHelper(this)
-        setupUI()
-
-        // ★ Toolbarのセットアップもbinding経由で行う
         setSupportActionBar(binding.toolbar)
-    }
 
-    override fun onResume() {
-        super.onResume()
-        checkPermissionAndLoadData()
-    }
-
-    private fun checkPermissionAndLoadData() {
-        if (hasUsageStatsPermission()) {
-            // ★ binding経由でビューを参照
-            binding.buttonPermission.visibility = View.GONE
-            // ScrollViewの表示/非表示も追加（権限ボタン復活のため）
-            binding.contentScrollView.visibility = View.VISIBLE
-            loadAndDisplayData()
-        } else {
-            // ★ binding経由でビューを参照
-            binding.buttonPermission.visibility = View.VISIBLE
-            binding.contentScrollView.visibility = View.GONE
-        }
-    }
-
-    private fun setupUI() {
-        // ★ クリックリスナーの設定もbinding経由で行う
-        binding.buttonDaily.setOnClickListener {
-            startActivity(Intent(this, DailyUsageDetailsActivity::class.java))
-        }
-        binding.buttonWeekly.setOnClickListener {
-            startActivity(Intent(this, WeeklyUsageDetailsActivity::class.java))
-        }
-        binding.buttonMonthly.setOnClickListener {
-            startActivity(Intent(this, MonthlyUsageDetailsActivity::class.java))
-        }
-        binding.buttonRefresh.setOnClickListener {
-            checkPermissionAndLoadData()
-        }
-        binding.buttonPermission.setOnClickListener {
-            requestUsageStatsPermission()
-        }
-    }
-
-    private fun loadAndDisplayData() {
-        binding.buttonRefresh.visibility = View.INVISIBLE
-        binding.progressBar.visibility = View.VISIBLE
-
-        lifecycleScope.launch {
-            try {
-                // ★ binding経由でビューを参照
-                val todaysTotal = usageHelper.getTodaysTotalUsage()
-                binding.tvTodayTotal.text = usageHelper.formatDuration(todaysTotal)
-
-                val cumulativeTotal = usageHelper.getCumulativeTotalUsage()
-                binding.tvCumulativeTotal.text = usageHelper.formatDuration(cumulativeTotal)
-
-                val mostLaunched = usageHelper.getMostLaunchedAppToday()
-                if (mostLaunched != null && mostLaunched.launchCount > 0) {
-                    binding.tvMostLaunchedAppName.text = "${mostLaunched.appName} (${mostLaunched.launchCount}回)"
-                    binding.highlightCard.visibility = View.VISIBLE
-                } else {
-                    binding.highlightCard.visibility = View.GONE
+        binding.bottomNavigation.setOnItemSelectedListener { item ->
+            when (item.itemId) {
+                R.id.nav_home -> {
+                    replaceFragment(HomeFragment())
+                    binding.toolbar.title = getString(R.string.home_title)
+                    true
                 }
-            } finally {
-                binding.buttonRefresh.visibility = View.VISIBLE
-                binding.progressBar.visibility = View.GONE
+                R.id.nav_usage_overview -> { // ここをnav_usage_overviewに変更
+                    replaceFragment(UsageOverviewFragment()) // UsageOverviewFragmentをロード
+                    binding.toolbar.title = getString(R.string.usage_overview_title) // タイトルも更新
+                    true
+                }
+                R.id.nav_alert_settings -> {
+                    replaceFragment(AlertSettingsFragment())
+                    binding.toolbar.title = getString(R.string.alert_settings_title)
+                    true
+                }
+                else -> false
             }
         }
+
+        // 初回起動時にHomeFragmentを表示
+        if (savedInstanceState == null) {
+            binding.bottomNavigation.selectedItemId = R.id.nav_home
+        }
     }
 
-    private fun hasUsageStatsPermission(): Boolean {
-        val appOps = getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager
-        val mode = appOps.checkOpNoThrow(
-            AppOpsManager.OPSTR_GET_USAGE_STATS,
-            android.os.Process.myUid(),
-            packageName
-        )
-        return mode == AppOpsManager.MODE_ALLOWED
-    }
-
-    private fun requestUsageStatsPermission() {
-        startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
+    private fun replaceFragment(fragment: Fragment) {
+        supportFragmentManager.beginTransaction()
+            .replace(R.id.fragment_container, fragment)
+            .commit()
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        menuInflater.inflate(R.menu.main_menu, menu)
-        return true
+        // オプションメニューはBottomNavigationViewで管理するため、ここではfalseを返す
+        return false
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        return when (item.itemId) {
-            R.id.action_alert_settings -> {
-                val intent = Intent(this, AlertSettingsActivity::class.java)
-                startActivity(intent)
-                true
-            }
-            else -> super.onOptionsItemSelected(item)
-        }
+        return super.onOptionsItemSelected(item)
     }
 }

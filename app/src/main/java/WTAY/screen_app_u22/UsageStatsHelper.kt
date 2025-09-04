@@ -4,6 +4,7 @@ import android.app.usage.UsageEvents
 import android.app.usage.UsageStats
 import android.app.usage.UsageStatsManager
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import WTAY.screen_app_u22.db.AppDatabase
 import kotlinx.coroutines.Dispatchers
@@ -18,13 +19,46 @@ class UsageStatsHelper(private val context: Context) {
     private val packageManager = context.packageManager
     private val db = AppDatabase.getDatabase(context)
 
+    // ▼▼▼ 追加するロジックここから ▼▼▼
+    // ホーム画面から起動できるアプリのパッケージ名リストを初回アクセス時に取得
+    private val launchablePackages: Set<String> by lazy {
+        val launcherIntent = Intent(Intent.ACTION_MAIN, null).addCategory(Intent.CATEGORY_LAUNCHER)
+        packageManager.queryIntentActivities(launcherIntent, 0)
+            .map { it.activityInfo.packageName }
+            .toSet()
+    }
+
+    // 現在のデフォルトランチャーアプリのパッケージ名を初回アクセス時に取得
+    private val defaultLauncherPackageName: String? by lazy {
+        val homeIntent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
+        val defaultLauncherInfo = packageManager.resolveActivity(homeIntent, PackageManager.MATCH_DEFAULT_ONLY)
+        defaultLauncherInfo?.activityInfo?.packageName
+    }
+
+    // アプリが利用状況リストに表示可能かどうかを判定する公開メソッド
+    // AlertSettingsFragmentからも利用するためpublicにする
+    fun isAppDisplayable(packageName: String): Boolean {
+        // 1. 自分のアプリは表示しない
+        if (packageName == context.packageName) return false
+
+        // 2. デフォルトのランチャーアプリは表示しない
+        if (packageName == defaultLauncherPackageName) return false
+
+        // 3. ホーム画面から直接起動できないアプリは表示しない
+        if (!launchablePackages.contains(packageName)) return false
+
+        return true
+    }
+    // ▲▲▲ 追加するロジックここまで ▲▲▲
+
     suspend fun getTodaysTotalUsage(): Long {
         return getDailyUsage().sumOf { it.usageTime }
     }
 
     suspend fun getCumulativeTotalUsage(): Long {
-        val historicalData = db.appUsageDao().getAllUsage()
-        val todaysTotal = getTodaysTotalUsage()
+        // DBからのデータもisAppDisplayableでフィルタリング
+        val historicalData = db.appUsageDao().getAllUsage().filter { isAppDisplayable(it.packageName) }
+        val todaysTotal = getTodaysTotalUsage() // これはgetDailyUsage()経由で既にフィルタリングされている
         val historicalTotal = historicalData.sumOf { it.usageTime }
         return historicalTotal + todaysTotal
     }
@@ -63,8 +97,11 @@ class UsageStatsHelper(private val context: Context) {
     }
 
     private suspend fun getUsageForPeriodFromDbAndApi(startTime: Long, endTime: Long): List<AppUsageDisplayItem> {
+        // DBから取得した履歴データにもフィルタリングを適用
         val historicalData = db.appUsageDao().getUsageForPeriod(startTime, endTime)
-        val todaysData = getDailyUsage()
+            .filter { isAppDisplayable(it.packageName) } // ▼▼▼ ここにフィルタリングを追加 ▼▼▼
+
+        val todaysData = getDailyUsage() // これはgetUsageForPeriodFromApi()経由で既にフィルタリングされている。
         val aggregatedStats = mutableMapOf<String, Pair<String, Long>>()
 
         historicalData.forEach { entity ->
@@ -85,13 +122,16 @@ class UsageStatsHelper(private val context: Context) {
         return getUsageForPeriodFromApi(startTime, endTime)
     }
 
-    // ▼▼▼ ここの `private` を削除しました ▼▼▼
     fun getUsageForPeriodFromApi(startTime: Long, endTime: Long): List<AppUsageDisplayItem> {
         val usageStatsList: List<UsageStats> = usageStatsManager.queryUsageStats(
             UsageStatsManager.INTERVAL_DAILY,
             startTime,
             endTime
         )
+
+        // isAppDisplayable メソッドにフィルタリングロジックが統合されたため、
+        // ここでの launchablePackages と defaultLauncherPackageName の再定義は不要になる。
+        // ただし、launchCountMap の取得は必要。
 
         val launchCountMap = mutableMapOf<String, Int>()
         val events = usageStatsManager.queryEvents(startTime, endTime)
@@ -111,9 +151,13 @@ class UsageStatsHelper(private val context: Context) {
         }
 
         return aggregatedStats.mapNotNull { (packageName, totalTime) ->
+            // ▼▼▼ isAppDisplayable を利用してフィルタリング ▼▼▼
+            if (!isAppDisplayable(packageName)) {
+                return@mapNotNull null
+            }
+            // ▲▲▲ フィルタリングここまで ▲▲▲
             try {
                 val appInfo = packageManager.getApplicationInfo(packageName, 0)
-                if (packageName == context.packageName) return@mapNotNull null
                 val appName = packageManager.getApplicationLabel(appInfo).toString()
                 if (totalTime > 0) {
                     val launchCount = launchCountMap[packageName] ?: 0
