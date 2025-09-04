@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/nav_home"
+        android:icon="@drawable/baseline_home_24"
+        android:title="@string/home_title" />
+    <item
+        android:id="@+id/nav_daily_usage"
+        android:icon="@drawable/sharp_calendar_today_24"
+        android:title="@string/daily_usage_title" />
+    <item
+        android:id="@+id/nav_alert_settings"
+        android:icon="@drawable/outline_alarm_24"
+        android:title="@string/alert_settings_title" />
+</menu>

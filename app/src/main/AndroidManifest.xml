@@ -30,11 +30,16 @@
             </intent-filter>
         </activity>
 
-        <!-- その他の画面 -->
-        <activity android:name=".DailyUsageDetailsActivity" android:label="今日の利用履歴" />
+        <!-- 以下の2つのactivity宣言を削除 -->
+        <!-- <activity android:name=".DailyUsageDetailsActivity" android:label="今日の利用履歴" /> -->
+        <!-- <activity android:name=".AlertSettingsActivity" android:label="アラート設定" /> -->
+
+        <!-- WeeklyUsageDetailsActivity と MonthlyUsageDetailsActivity は、
+             今回はボトムナビゲーションの対象外ですが、もし残したい場合はFragmentに移行するか、
+             MainActivity以外から起動する形にする必要があります。
+             ひとまず、ここではこれらはそのまま残すものとします。 -->
         <activity android:name=".WeeklyUsageDetailsActivity" android:label="今週の利用履歴" />
         <activity android:name=".MonthlyUsageDetailsActivity" android:label="今月の利用履歴" />
-        <activity android:name=".AlertSettingsActivity" android:label="アラート設定" />
 
     </application>
 </manifest>

@@ -58,4 +58,9 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+
+    implementation(libs.androidx.appcompat) // Fragmentを利用するために必要
+    implementation(libs.androidx.lifecycle.runtime.ktx) // LifecycleOwner for Fragments
+    // Fragment KTXも追加すると便利
+    implementation("androidx.fragment:fragment-ktx:1.8.9")
 }
