@@ -2,10 +2,12 @@
 <resources>
     <string name="app_name">見えるくん</string>
     <string name="title_activity_main.xml">activity_main.xml</string>
-    <!-- 追加 -->
-    <string name="daily_usage_title">今日の利用履歴</string>
+    <!-- 既存の文字列 -->
     <string name="alert_settings_title">アラート設定</string>
     <string name="home_title">ホーム</string>
-    <!-- TODO: Remove or change this placeholder text -->
-    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <!-- 追加/変更 -->
+    <string name="usage_overview_title">利用状況</string>
+    <string name="daily_usage_tab_title">今日</string>
+    <string name="weekly_usage_tab_title">今週</string>
+    <string name="monthly_usage_tab_title">今月</string>
 </resources>

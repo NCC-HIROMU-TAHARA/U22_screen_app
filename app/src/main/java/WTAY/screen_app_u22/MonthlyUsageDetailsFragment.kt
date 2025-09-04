@@ -9,12 +9,12 @@ import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
-import WTAY.screen_app_u22.databinding.FragmentDailyUsageDetailsBinding // こちらのBindingクラスを使用
+import WTAY.screen_app_u22.databinding.FragmentMonthlyUsageDetailsBinding // 新しいBindingクラスを生成
 import kotlinx.coroutines.launch
 
-class DailyUsageDetailsFragment : Fragment() {
+class MonthlyUsageDetailsFragment : Fragment() {
 
-    private var _binding: FragmentDailyUsageDetailsBinding? = null
+    private var _binding: FragmentMonthlyUsageDetailsBinding? = null
     private val binding get() = _binding!!
     private lateinit var usageHelper: UsageStatsHelper
 
@@ -22,25 +22,24 @@ class DailyUsageDetailsFragment : Fragment() {
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        // fragment_daily_usage_details.xml に対応するBindingクラスを使用
-        _binding = FragmentDailyUsageDetailsBinding.inflate(inflater, container, false)
+        _binding = FragmentMonthlyUsageDetailsBinding.inflate(inflater, container, false)
         return binding.root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         usageHelper = UsageStatsHelper(requireContext())
-        setupRecyclerView() // リサイクラービューのセットアップをここで実行
-        displayDailyUsageDetails()
+        setupRecyclerView()
+        displayMonthlyUsageDetails()
     }
 
     private fun setupRecyclerView() {
-        binding.dailyUsageRecyclerView.layoutManager = LinearLayoutManager(requireContext())
+        binding.monthlyUsageRecyclerView.layoutManager = LinearLayoutManager(requireContext())
     }
 
-    private fun displayDailyUsageDetails() {
+    private fun displayMonthlyUsageDetails() {
         lifecycleScope.launch {
-            val displayList = usageHelper.getDailyUsage()
+            val displayList = usageHelper.getMonthlyUsageFromDbAsync()
 
             val adapter = UsageListAdapter(requireContext(), displayList) { packageName ->
                 val intent = requireContext().packageManager.getLaunchIntentForPackage(packageName)
@@ -50,7 +49,7 @@ class DailyUsageDetailsFragment : Fragment() {
                     Toast.makeText(requireContext(), "このアプリは起動できません", Toast.LENGTH_SHORT).show()
                 }
             }
-            binding.dailyUsageRecyclerView.adapter = adapter
+            binding.monthlyUsageRecyclerView.adapter = adapter
         }
     }
 

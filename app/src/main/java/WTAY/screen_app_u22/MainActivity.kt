@@ -1,17 +1,11 @@
 package WTAY.screen_app_u22
 
-import android.app.AppOpsManager
-import android.content.Context
-import android.content.Intent
 import android.os.Bundle
-import android.provider.Settings
 import android.view.Menu
 import android.view.MenuItem
-import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import WTAY.screen_app_u22.databinding.ActivityMainBinding
-import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
 
@@ -24,21 +18,20 @@ class MainActivity : AppCompatActivity() {
 
         setSupportActionBar(binding.toolbar)
 
-        // BottomNavigationViewのセットアップ
         binding.bottomNavigation.setOnItemSelectedListener { item ->
             when (item.itemId) {
                 R.id.nav_home -> {
                     replaceFragment(HomeFragment())
-                    binding.toolbar.title = getString(R.string.home_title) // ツールバーのタイトルを更新
+                    binding.toolbar.title = getString(R.string.home_title)
                     true
                 }
-                R.id.nav_daily_usage -> {
-                    replaceFragment(DailyUsageDetailsFragment()) // DailyUsageDetailsFragmentは別途作成
-                    binding.toolbar.title = getString(R.string.daily_usage_title)
+                R.id.nav_usage_overview -> { // ここをnav_usage_overviewに変更
+                    replaceFragment(UsageOverviewFragment()) // UsageOverviewFragmentをロード
+                    binding.toolbar.title = getString(R.string.usage_overview_title) // タイトルも更新
                     true
                 }
                 R.id.nav_alert_settings -> {
-                    replaceFragment(AlertSettingsFragment()) // AlertSettingsFragmentは別途作成
+                    replaceFragment(AlertSettingsFragment())
                     binding.toolbar.title = getString(R.string.alert_settings_title)
                     true
                 }
@@ -58,19 +51,12 @@ class MainActivity : AppCompatActivity() {
             .commit()
     }
 
-    // MainActivityに直接Permission関連のメソッドは不要になります。
-    // HomeFragmentで処理するか、必要に応じてMainActivityで処理し、フラグメントに結果を渡す仕組みを検討してください。
-    // この例ではHomeFragmentに移行していると仮定します。
-    // hasUsageStatsPermission() や requestUsageStatsPermission() の呼び出しはHomeFragment内で行われるべきです。
-
-    // 既存のオプションメニューは不要になるため削除します。
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        // getMenuInflater().inflate(R.menu.main_menu, menu); // これをコメントアウトまたは削除
-        return false // メニューはBottomNavigationViewで管理するため、ここではfalseを返す
+        // オプションメニューはBottomNavigationViewで管理するため、ここではfalseを返す
+        return false
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        // ここでのメニューアイテム処理も不要になります
         return super.onOptionsItemSelected(item)
     }
 }

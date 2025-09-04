@@ -5,9 +5,9 @@
         android:icon="@drawable/baseline_home_24"
         android:title="@string/home_title" />
     <item
-        android:id="@+id/nav_daily_usage"
-        android:icon="@drawable/sharp_calendar_today_24"
-        android:title="@string/daily_usage_title" />
+        android:id="@+id/nav_usage_overview"
+    android:icon="@drawable/sharp_calendar_today_24"
+    android:title="@string/usage_overview_title" />
     <item
         android:id="@+id/nav_alert_settings"
         android:icon="@drawable/outline_alarm_24"
