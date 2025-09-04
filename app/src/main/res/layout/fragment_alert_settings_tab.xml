@@ -4,19 +4,10 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".AlertSettingsActivity">
+    tools:context=".AlertSettingsTabFragment"
+    android:background="?attr/colorSurface"> <!-- 親の背景色を継承 -->
 
-    <com.google.android.material.appbar.AppBarLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content">
-
-        <com.google.android.material.appbar.MaterialToolbar
-            android:id="@+id/toolbar"
-            android:layout_width="match_parent"
-            android:layout_height="?attr/actionBarSize"
-            app:title="アラート設定"
-            app:navigationIcon="@drawable/ic_arrow_back_24" />
-    </com.google.android.material.appbar.AppBarLayout>
+    <!-- AppBarLayoutはMainActivityのToolbarを使用するため、ここでは削除 -->
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerView"
@@ -43,6 +34,5 @@
         android:layout_margin="16dp"
         android:contentDescription="アラートを追加"
         app:srcCompat="@android:drawable/ic_input_add" />
-    <!-- ic_add_24.xml がなければ、標準のアイコンで代用 -->
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
